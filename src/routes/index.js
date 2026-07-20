@@ -13,6 +13,7 @@ import moduleAccessRoutes from "#modules/module-access/module-access.routes.js";
 import dashboardRoutes from "#modules/dashboard/dashboard.routes.js";
 import bootstrapRoutes from "#modules/bootstrap/bootstrap.routes.js";
 import { verifyToken } from "#middlewares/auth.middleware.js"
+import visitRoutes from "#modules/visit/visit.routes.js";
 
 const router = express.Router();
 
@@ -28,5 +29,6 @@ router.use('/products', verifyToken, productRoutes);
 router.use('/permissions', verifyToken, moduleAccessRoutes);
 router.use("/notifications", verifyToken, notificationRoutes);
 router.use("/dashboard", verifyToken, dashboardRoutes);
+router.use("/visits", verifyToken, visitRoutes);
 
 export default router;
