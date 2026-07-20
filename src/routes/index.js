@@ -11,6 +11,7 @@ import companyRoutes from "#modules/company/company.routes.js";
 import productRoutes from "#modules/product/product.routes.js";
 import moduleAccessRoutes from "#modules/module-access/module-access.routes.js";
 import dashboardRoutes from "#modules/dashboard/dashboard.routes.js";
+import dealerRoutes from "#modules/dealer/dealer.routes.js";
 import bootstrapRoutes from "#modules/bootstrap/bootstrap.routes.js";
 import { verifyToken } from "#middlewares/auth.middleware.js"
 
@@ -19,6 +20,7 @@ const router = express.Router();
 router.use('/', loginRoutes);
 router.use('/', bootstrapRoutes);
 router.use('/users', verifyToken, usersRoutes);
+router.use('/dealers', verifyToken, dealerRoutes);
 router.use('/system', verifyToken, systemRoutes);
 router.use('/menus', verifyToken, menuRoutes);
 router.use('/categories', verifyToken, categoryRoutes);
