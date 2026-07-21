@@ -15,6 +15,7 @@ import dashboardRoutes from "#modules/dashboard/dashboard.routes.js";
 import dealerRoutes from "#modules/dealer/dealer.routes.js";
 import bootstrapRoutes from "#modules/bootstrap/bootstrap.routes.js";
 import { verifyToken } from "#middlewares/auth.middleware.js"
+import visitRoutes from "#modules/visit/visit.routes.js";
 
 const router = express.Router();
 
@@ -32,5 +33,6 @@ router.use('/permissions', verifyToken, moduleAccessRoutes);
 router.use('/userroles', verifyToken, userroleRoutes);
 router.use("/notifications", verifyToken, notificationRoutes);
 router.use("/dashboard", verifyToken, dashboardRoutes);
+router.use("/visits", verifyToken, visitRoutes);
 
 export default router;
