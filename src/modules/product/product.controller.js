@@ -44,7 +44,7 @@ const custom_columns = {
 
 const productValidationRules = {
   product_id: { label: "Product ID", type: "number" },
-  product_name: { label: "Product Name", required: true },
+  product_name: { label: "Product Name", required : true },
   product_type: { label: "Product Type", required: true },
   product_description: { label: "Description" },
   company_id: { label: "Company", type: "number" },
