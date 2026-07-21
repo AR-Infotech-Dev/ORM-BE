@@ -18,7 +18,6 @@ export const getDefinations = async (req, res) => {
           message: "menu_id is required",
         });
       }
-
       const moduleDetails = await CommonModel.getMasterDetails("menu_master", "*", { menu_id });
 
       if (!moduleDetails.length) {
@@ -297,7 +296,7 @@ export const getslugList = async (req, res) => {
           select: "t.category_id,t.slug,t.categoryName,t.parent_id,t.is_parent,t.categories_index,t.cat_color",
           table: "categories",
           where: childW,
-          values:childV,
+          values: childV,
           join,
           other,
         });
