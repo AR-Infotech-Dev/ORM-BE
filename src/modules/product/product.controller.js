@@ -46,6 +46,32 @@ const productValidationRules = {
   product_id: { label: "Product ID", type: "number" },
   product_name: { label: "Product Name", required : true },
   product_type: { label: "Product Type", required: true },
+    sku: {
+    label: "SKU",
+  },
+    category_id: {
+    label: "Category ID",
+    type: "number",
+  },
+
+  unit: {
+    label: "Unit",
+  },
+
+  mrp: {
+    label: "MRP",
+    type: "number",
+  },
+
+  sale_price: {
+    label: "Sale Price",
+    type: "number",
+  },
+
+  tax_rate: {
+    label: "Tax Rate",
+    type: "number",
+  },
   product_description: { label: "Description" },
   company_id: { label: "Company", type: "number" },
   created_by: { label: "Created By", type: "number" },
@@ -78,6 +104,9 @@ export const list = async (req, res) => {
         searchColumns: [
           "product_name",
           "product_description",
+          "product_id",
+
+
         ],
       },
       default_columns,
@@ -89,7 +118,7 @@ export const list = async (req, res) => {
     other.searchColumns = [
       "t.product_name",
       "t.product_description",
-      "pt.categoryName",
+       "product_id",
     ];
 
     if (!isSuperAdmin(req.user) && req.user.company_id) {
@@ -318,3 +347,4 @@ export const changeStatus = async (req, res) => {
     });
   }
 };
+
