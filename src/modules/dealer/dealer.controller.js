@@ -51,19 +51,22 @@ const custom_columns = {
 
 const dealerValidationRules = {
   dealer_id: { label: "Dealer ID", type: "number" },
-  name: { label: "Dealer Name", required : true },
+  name: { label: "Dealer Name", required: true },
   code: { label: "Dealer Code" },
-  mobile:{label:"Mobile" ,type:"number"},
-  email:{label:"E-mail"},
-  gstin:{label:"GST IN",Type:"varchar"},
-  credit_limit:{label:"Credit limit" ,type:"number"},
-  created_date:{label:"Created date",type:"number"},
-  modified_date:{label:"Modify date",type:"number"},
-  status:{label:"status",type:"enum"},
+  mobile: { label: "Mobile", type: "number" },
+  email: { label: "E-mail" },
+  gstin: { label: "GST IN", Type: "varchar" },
+  credit_limit: { label: "Credit limit", type: "number" },
+  created_date: { label: "Created date", type: "number" },
+  modified_date: { label: "Modify date", type: "number" },
+  status: { label: "status", type: "enum" },
   company_id: { label: "Company", type: "number" },
   created_by: { label: "Created By", type: "number" },
   modified_by: { label: "Modified By", type: "number" },
-  assigned_salesman:{label:"Assigned by",type:"varchar"}
+  assigned_salesman: { label: "Assigned by", type: "varchar" },
+  dealer_type: {label: "Type", type: "varchar" },
+  pan_number: { label: "Pan", type: "string" },
+  
 };
 
 export const list = async (req, res) => {
@@ -79,7 +82,7 @@ export const list = async (req, res) => {
 
     // const limit = 10;
     const limit = env.perPage;
-    
+
     const currentPage = Number(page) || 1;
     const start = (currentPage - 1) * limit;
 
@@ -91,7 +94,7 @@ export const list = async (req, res) => {
         order,
         searchColumns: [
           "t.name",
-          "t.code", 
+          "t.code",
           "t.mobile",
         ],
       },
@@ -154,7 +157,7 @@ export const list = async (req, res) => {
       httpStatus: 500,
       message: error.message,
     });
-  } 
+  }
 };
 
 export const getdealerDetails = async (req, res) => {
@@ -174,10 +177,10 @@ export const getdealerDetails = async (req, res) => {
         }
 
         const data = validation.data;
-        console.log("data : ",data);
-        
+        console.log("data : ", data);
+
         delete data.dealer_id;
-        
+
         data.created_by = req.user.adminID;
         data.company_id = req.user.company_id;
         data.created_date = toMysqlDateTime();
@@ -214,7 +217,7 @@ export const getdealerDetails = async (req, res) => {
         }
 
         const data = validation.data;
-        console.log("data : ",data);
+        console.log("data : ", data);
 
         delete data.dealer_id;
         delete data.company_id;
@@ -316,7 +319,7 @@ export const changeStatus = async (req, res) => {
 
     const where = { dealer_id: ids };
     if (!isSuperAdmin(req.user) && req.user.company_id) {
-      
+
       where.company_id = req.user.company_id;
     }
 

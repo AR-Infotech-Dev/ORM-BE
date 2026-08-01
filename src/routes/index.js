@@ -16,6 +16,7 @@ import dealerRoutes from "#modules/dealer/dealer.routes.js";
 import bootstrapRoutes from "#modules/bootstrap/bootstrap.routes.js";
 import { verifyToken } from "#middlewares/auth.middleware.js"
 import visitRoutes from "#modules/visit/visit.routes.js";
+import myTeamsRoutes from "#modules/myTeams/myTeams.routes.js";
 
 const router = express.Router();
 
@@ -34,5 +35,7 @@ router.use('/userroles', verifyToken, userroleRoutes);
 router.use("/notifications", verifyToken, notificationRoutes);
 router.use("/dashboard", verifyToken, dashboardRoutes);
 router.use("/visits", verifyToken, visitRoutes);
+router.use('/myTeams', verifyToken, myTeamsRoutes);
+
 
 export default router;
