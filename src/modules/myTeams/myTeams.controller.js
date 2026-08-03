@@ -142,6 +142,8 @@ export const list = async (req, res) => {
         });
 
         const { select, where, values, join, other } = filterData;
+        console.log("SELECT =>", select);
+console.log("JOIN =>", join);
         const scopedCompanyId = isSuperAdminRole(req.user?.role_slug)
             ? null
             : getUserCompanyId(req.user);
@@ -205,37 +207,41 @@ export const list = async (req, res) => {
         }
 
         // Fetch children upto 2 levels
+        // for (const member of data) {
+
+        //     // Level 1 Children
+        //     const children = await CommonModel.GetMasterListDetails({
+        //         select,
+        //         table: MODULE_TABLE,
+        //         where: ["t.reporting_to = ?"],
+        //         values: [member.adminID],
+        //         join,
+        //         other,
+        //     });
+
+        //     member.children = children;
+
+        //     // Level 2 Children
+        //     for (const child of children) {
+
+        //         const grandChildren = await CommonModel.GetMasterListDetails({
+        //             select,
+        //             table: MODULE_TABLE,
+        //             where: ["t.reporting_to = ?"],
+        //             values: [child.adminID],
+        //             join,
+        //             other,
+        //         });
+
+        //         child.children = grandChildren;
+        //     }
+        // }
+
         for (const member of data) {
-
-            // Level 1 Children
-            const children = await CommonModel.GetMasterListDetails({
-                select,
-                table: MODULE_TABLE,
-                where: ["t.reporting_to = ?"],
-                values: [member.adminID],
-                join,
-                other,
-            });
-
-            member.children = children;
-
-            // Level 2 Children
-            for (const child of children) {
-
-                const grandChildren = await CommonModel.GetMasterListDetails({
-                    select,
-                    table: MODULE_TABLE,
-                    where: ["t.reporting_to = ?"],
-                    values: [child.adminID],
-                    join,
-                    other,
-                });
-
-                child.children = grandChildren;
-            }
+            member.children = await getHierarchy(member.adminID);
         }
 
-        console.log(data);
+        // console.log(data);
 
         return successResponse(res, {
             code: 1004,
