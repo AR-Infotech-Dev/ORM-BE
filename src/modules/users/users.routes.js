@@ -5,6 +5,9 @@ import { tenantDbMiddleware } from '#middlewares/ownDB.middleware.js';
 const usersRoutes = express.Router();
 
 usersRoutes.post('/', requirePermission(['admin', 'users'], 'view'), userController.list);
+
+// usersRoutes.get('/children', requirePermission(['admin', 'users'], 'view'), userController.getTeamMembersByParent);
+
 // ONLY ON SIDE TENANT-DB / MAIN-DB
 usersRoutes.post('/delete', requirePermission(['admin', 'users'], 'delete'), userController.changeStatus);
 usersRoutes.post('/sign-in', tenantDbMiddleware,userController.saveSignInLocation);

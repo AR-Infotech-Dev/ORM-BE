@@ -151,6 +151,8 @@ const userSchema = Joi.object({
   is_sys_user: Joi.string().valid("yes", "no").default("no"),
   roleID: Joi.number().integer().required(),
 
+  reporting_to: Joi.number().integer().allow(null),
+
   address: Joi.string().allow("", null),
   google_location: Joi.string().allow("", null),
 
@@ -209,7 +211,13 @@ const default_columns = {
     key2: "company_id",
     select: "",
   },
-
+  reporting_to: {
+    table: "admin",
+    alias: "rp",
+    column: "name",
+    key2: "adminID",
+    select: "",
+  },
 };
 
 const custom_columns = {
@@ -229,8 +237,48 @@ const custom_columns = {
   },
 };
 
+const getHierarchy = async (parentId) => {
+
+  const users = await CommonModel.GetMasterListDetails({
+    select: `
+      t.adminID,
+      t.name,
+      t.email,
+      t.contactNo,
+      t.reporting_to,
+      t.status,
+      t.roleID,
+      r.roleName
+    `,
+    table: MODULE_TABLE,
+    where: ["t.reporting_to = ?"],
+    values: [parentId],
+    join: [
+      {
+        type: "LEFT JOIN",
+        table: "user_role_master",
+        alias: "r",
+        key1: "roleID",
+        key2: "roleID",
+      },
+    ],
+  });
+
+  for (const user of users) {
+    user.children = await getHierarchy(user.adminID);
+  }
+
+  return users;
+};
+
 export const list = async (req, res) => {
   try {
+
+    // console.log("req.user =", req.user);
+    // console.log("role_slug =", req.user?.role_slug);
+    // console.log("adminID =", req.user?.adminID);
+    // console.log("isSuperAdminRole =", isSuperAdminRole(req.user?.role_slug));
+
     const {
       page = 1,
       searchText = "",
@@ -240,7 +288,9 @@ export const list = async (req, res) => {
       company_id = null,
       filters,
     } = req.body;
+    // console.log(req.user);
 
+    const { parent_id, depth } = req.query;
     // const limit = 10;
     const limit = env.perPage;
 
@@ -270,6 +320,36 @@ export const list = async (req, res) => {
       where.push("t.company_id = ?");
       values.push(scopedCompanyId);
     }
+
+    if (!isSuperAdminRole(req.user?.role_slug)) {
+
+      // Expand All
+      if (depth === "all") {
+
+        const hierarchy = await getHierarchy(req.user.adminID);
+
+        return successResponse(res, {
+          code: 1004,
+          httpStatus: 200,
+          data: {
+            data: hierarchy
+          }
+        });
+      }
+
+      // Expand specific node
+      if (parent_id) {
+        where.push("t.reporting_to = ?");
+        values.push(parent_id);
+      }
+
+      // First load
+      else {
+        where.push("t.reporting_to = ?");
+        values.push(req.user.adminID);
+      }
+    }
+
     // HIDE SUPER ADMIN FROM LIST
     where.push("r.slug != ?");
     values.push('super_admin');
@@ -892,6 +972,7 @@ export const getProfile = async (req, res) => {
         t.whatsappNo,
         t.time_zone,
         t.roleID,
+
         r.roleName AS roleName,
         r.slug AS role_slug,
         t.company_id,
@@ -921,6 +1002,13 @@ export const getProfile = async (req, res) => {
           alias: "cm",
           key1: "company_id",
           key2: "company_id",
+        },
+        {
+          type: "LEFT JOIN",
+          table: "admin",
+          alias: "rp",
+          key1: "reporting_to",
+          key2: "adminID",
         },
       ],
     });
