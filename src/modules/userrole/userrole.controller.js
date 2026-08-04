@@ -88,8 +88,8 @@ export const list = async (req, res) => {
     const { select, where, values, join, other } = filterData;
     // other.freeTextSearch = searchText;
     // other.searchColumns = [
-    //   "ur.roleName",
-    //   "ur.slug",
+    //   "r.roleName",
+    //   "r.slug",
     // ];
 
     if (!isSuperAdmin(req.user) && req.user.company_id) {
