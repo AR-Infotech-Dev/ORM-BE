@@ -9,14 +9,6 @@ import { env } from "#config/env.js";
 const MODULE_TABLE = "visits";
 const default_columns = {};
 const custom_columns = {
-  // dealer_id: {
-  //   table: "dealers",
-  //   alias: "dm",
-  //   column: "dealer_name",
-  //   key2: "dealer_id",
-  //   select: "",
-  // },
-
   company_id: {
     table: "company_master",
     alias: "dc",
@@ -24,7 +16,6 @@ const custom_columns = {
     key2: "company_id",
     select: "",
   },
-
   user_id: {
     table: "admin",
     alias: "au",

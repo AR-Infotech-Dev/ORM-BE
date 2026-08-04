@@ -4,7 +4,6 @@ import { successResponse, failureResponse } from "#shared/utils/apiResponse.js";
 export const overview = async (req, res) => {
   try {
     const data = await DashboardService.getDashboardOverview(req.user, req.body);
-
     return successResponse(res, {
       code: 1004,
       httpStatus: 200,
@@ -14,7 +13,6 @@ export const overview = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    
     return failureResponse(res, {
       code: 2008,
       httpStatus: 500,
