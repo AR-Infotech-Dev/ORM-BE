@@ -1,7 +1,6 @@
 import { json, response } from "express";
 import { query, DB_PREFIX } from "#config/database.js";
 import { getUserCompanyId, isAdminRole, isSuperAdminRole } from "#shared/utils/role.utils.js";
-
 const CLOSED_STATUS_ID = 208;
 const getCompanyId = getUserCompanyId;
 const normalizeDateValue = (value) => {
@@ -32,13 +31,11 @@ const addDateScope = (where, params, filter = {}, alias = "t", column = "created
     where.push(`DATE(${alias}.${column}) >= ?`);
     params.push(fromDate);
   }
-
   if (toDate) {
     where.push(`DATE(${alias}.${column}) <= ?`);
     params.push(toDate);
   }
 };
-
 const getTicketScope = (user = {}, filter = {}) => {
   const where = [];
   const params = [];

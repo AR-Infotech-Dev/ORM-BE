@@ -35,6 +35,7 @@ router.use('/userroles', verifyToken, userroleRoutes);
 router.use("/notifications", verifyToken, notificationRoutes);
 router.use("/dashboard", verifyToken, dashboardRoutes);
 router.use("/visits", verifyToken, visitRoutes);
+// router.use('/myTeams', verifyToken, myTeamsRoutes);
 router.use('/myTeams', verifyToken, myTeamsRoutes);
 
 
