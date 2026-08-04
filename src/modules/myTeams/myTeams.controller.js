@@ -142,6 +142,14 @@ export const list = async (req, res) => {
         });
 
         const { select, where, values, join, other } = filterData;
+        const myTeamSelect = `
+            t.*,
+            r.roleName AS roleName,
+            dc.company_name AS default_company,
+            rp.name AS reporting_to,
+            am.name AS modified_by,
+            ad.name AS created_by
+        `;
         const scopedCompanyId = isSuperAdminRole(req.user?.role_slug)
             ? null
             : getUserCompanyId(req.user);
@@ -184,7 +192,7 @@ export const list = async (req, res) => {
 
         if (getAll === "Y") {
             data = await CommonModel.GetMasterListDetails({
-                select,
+                select: myTeamSelect,
                 table: MODULE_TABLE,
                 where,
                 values,
@@ -193,7 +201,7 @@ export const list = async (req, res) => {
             });
         } else {
             data = await CommonModel.GetMasterListDetails({
-                select,
+                select: myTeamSelect,
                 table: MODULE_TABLE,
                 where,
                 values,
@@ -205,37 +213,41 @@ export const list = async (req, res) => {
         }
 
         // Fetch children upto 2 levels
+        // for (const member of data) {
+
+        //     // Level 1 Children
+        //     const children = await CommonModel.GetMasterListDetails({
+        //         select,
+        //         table: MODULE_TABLE,
+        //         where: ["t.reporting_to = ?"],
+        //         values: [member.adminID],
+        //         join,
+        //         other,
+        //     });
+
+        //     member.children = children;
+
+        //     // Level 2 Children
+        //     for (const child of children) {
+
+        //         const grandChildren = await CommonModel.GetMasterListDetails({
+        //             select,
+        //             table: MODULE_TABLE,
+        //             where: ["t.reporting_to = ?"],
+        //             values: [child.adminID],
+        //             join,
+        //             other,
+        //         });
+
+        //         child.children = grandChildren;
+        //     }
+        // }
+
         for (const member of data) {
-
-            // Level 1 Children
-            const children = await CommonModel.GetMasterListDetails({
-                select,
-                table: MODULE_TABLE,
-                where: ["t.reporting_to = ?"],
-                values: [member.adminID],
-                join,
-                other,
-            });
-
-            member.children = children;
-
-            // Level 2 Children
-            for (const child of children) {
-
-                const grandChildren = await CommonModel.GetMasterListDetails({
-                    select,
-                    table: MODULE_TABLE,
-                    where: ["t.reporting_to = ?"],
-                    values: [child.adminID],
-                    join,
-                    other,
-                });
-
-                child.children = grandChildren;
-            }
+            member.children = await getHierarchy(member.adminID);
         }
 
-        console.log(data);
+        // console.log(data);
 
         return successResponse(res, {
             code: 1004,
@@ -278,7 +290,8 @@ export const getMemberDetails = async (req, res) => {
                 t.reporting_to,
                 t.roleID,
                 r.roleName,
-                rt.name as reporting_to_name
+                rt.name as reporting_to_name,
+                rr.roleName as reporting_to_role
             `,
             where: [
                 "t.adminID = ?"
@@ -300,6 +313,14 @@ export const getMemberDetails = async (req, res) => {
                     alias: "rt",
                     key1: "reporting_to",
                     key2: "adminID",
+                },
+                {
+                    type: "LEFT JOIN",
+                    table: "user_role_master",
+                    alias: "rr",
+                    key1Alias: "rt",      // rt.roleID वर join होईल
+                    key1: "roleID",
+                    key2: "roleID",
                 },
             ]
         });
