@@ -10,6 +10,7 @@ const MODULE_TABLE = "menu_master";
 const default_columns = {};
 
 const custom_columns = {
+  
   created_by: {
     table: "admin",
     alias: "ad",
@@ -22,6 +23,14 @@ const custom_columns = {
     column: "name",
     key2: "adminID",
   },
+};
+const buildMenuTree = (menus, parentId = 0) => {
+  return menus
+    .filter(menu => Number(menu.parent_id) === Number(parentId))
+    .map(menu => ({
+      ...menu,
+      children: buildMenuTree(menus, menu.menu_id),
+    }));
 };
 
 // =============================================
@@ -37,6 +46,10 @@ const menuValidationRules = {
   label: { label: "Label" },
   icon_name: { label: "Icon" },
   status: { label: "Status" },
+   is_parent: { label: "Is Parent" },
+  parent_id: { label: "Parent Menu", type: "number" },
+  only_link: { label: "Only Link" },
+  
 };
 
 // =============================================
@@ -106,12 +119,22 @@ export const list = async (req, res) => {
         other,
       });
     }
+    console.log("MENU LIST =", menuList); 
+    console.log(
+  menuList.map((m) => ({
+    id: m.menu_id,
+    name: m.menu_name,
+    parent_id: m.parent_id,
+    is_parent: m.is_parent,
+  }))
+);
+    const treeData = buildMenuTree(menuList);
 
     return successResponse(res, {
       code: 1004,
       httpStatus: 200,
       data: {
-        data: menuList,
+        data: treeData,
         pagination: {
           total,
           page: currentPage,
@@ -195,12 +218,13 @@ export const menulist = async (req, res) => {
         other,
       });
     }
+    const treeData = buildMenuTree(menuList);
 
     return successResponse(res, {
       code: 1004,
       httpStatus: 200,
       data: {
-        data: menuList,
+        data: treeData,
         pagination: {
           total,
           page: currentPage,
@@ -232,6 +256,7 @@ export const getMenuDetails = async (req, res) => {
 
       // ================= CREATE =================
       case "PUT": {
+        console.log("REQ BODY (CREATE) =", req.body);
         const validation = validateBody(req.body, menuValidationRules);
         if (!validation.isValid) {
           return failureResponse(res, {
@@ -255,6 +280,7 @@ export const getMenuDetails = async (req, res) => {
 
       // ================= UPDATE =================
       case "POST": {
+         console.log("REQ BODY (UPDATE) =", req.body);
         if (!menu_id) {
           return failureResponse(res, {
             code: 2004,

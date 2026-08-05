@@ -3,11 +3,16 @@ import { successResponse, failureResponse } from "#shared/utils/apiResponse.js";
 import { prepareFilterData } from "#shared/utils/filter.builder.js";
 import { toMysqlDateTime } from "#shared/utils/dateTime.js";
 import { validateBody } from "#shared/utils/bodyValidator.js";
-import { clearCompanyMailerCache, testSmtpConnection } from "#shared/utils/email.js";
-import { COMPANY_LOGO_DIR, companyValidationRules, dbTestValidationRules, dumpTable, ensureCompanyLogoDir, getLogoExtension, mailTestValidationRules, normalizeMailConfig, testCompanyDbConnection } from "./company.utils.js";
+import { clearCompanyMailerCache } from "#shared/utils/email.js";
+import {
+  COMPANY_LOGO_DIR,
+  companyValidationRules,
+  ensureCompanyLogoDir,
+  getLogoExtension,
+} from "./company.utils.js";
 import { env } from "process";
 import path from "node:path";
-import os from "node:os";
+// import os from "node:os";
 import fs from "fs";
 // TENANT SYNC 
 import { syncToTenant } from "#shared/utils/tenantSync.js";
@@ -57,14 +62,15 @@ export const list = async (req, res) => {
       other: {
         orderBy,
         order,
+        
         searchColumns: [
-          "company_name",
-          "sender_email",
-          "cc_email",
-          "sender_name",
-          "mobile_number",
-          "pan",
-        ],
+"company_name",
+"legal_name",
+// "email",
+"mobile_number",
+"gstin",
+"pan_number",
+]
       },
       default_columns,
       custom_columns,
@@ -73,13 +79,13 @@ export const list = async (req, res) => {
     const { select, where, values, join, other } = filterData;
     other.freeTextSearch = searchText;
     other.searchColumns = [
-      "t.company_name",
-      "t.sender_email",
-      "t.cc_email",
-      "t.sender_name",
-      "t.mobile_number",
-      "t.pan",
-    ];
+     "t.company_name",
+     "t.legal_name",
+      // "t.email",
+     "t.mobile_number",
+     "t.gstin",
+     "t.pan_number",
+    ]
 
     const total = await CommonModel.getCountsByParameter({
       table: MODULE_TABLE,
@@ -139,159 +145,159 @@ export const list = async (req, res) => {
   }
 };
 
-export const testMailConfig = async (req, res) => {
-  try {
-    const validation = validateBody(req.body, mailTestValidationRules);
-    if (!validation.isValid) {
-      return failureResponse(res, {
-        code: 2001,
-        httpStatus: 400,
-        message: validation.message,
-      });
-    }
+// export const testMailConfig = async (req, res) => {
+//   try {
+//     const validation = validateBody(req.body, mailTestValidationRules);
+//     if (!validation.isValid) {
+//       return failureResponse(res, {
+//         code: 2001,
+//         httpStatus: 400,
+//         message: validation.message,
+//       });
+//     }
 
-    const data = normalizeMailConfig(validation.data);
-    if (data.mail_provider === "custom" && (!data.smtp_host || !data.smtp_port || !data.smtp_username || !data.smtp_encryption)) {
-      return failureResponse(res, {
-        code: 2001,
-        httpStatus: 400,
-        message: "SMTP host, port, username, and encryption are required for Custom SMTP",
-      });
-    }
+//     const data = normalizeMailConfig(validation.data);
+//     if (data.mail_provider === "custom" && (!data.smtp_host || !data.smtp_port || !data.smtp_username || !data.smtp_encryption)) {
+//       return failureResponse(res, {
+//         code: 2001,
+//         httpStatus: 400,
+//         message: "SMTP host, port, username, and encryption are required for Custom SMTP",
+//       });
+//     }
 
-    const result = await testSmtpConnection(data);
-    const companyId = data.company_id || req.user.company_id || null;
+//     const result = await testSmtpConnection(data);
+//     const companyId = data.company_id || req.user.company_id || null;
 
-    if (companyId) {
-      try {
-        await CommonModel.updateMasterDetails({
-          table: MODULE_TABLE,
-          data: {
-            mail_connection_status: result.success ? "connected" : "failed",
-            mail_last_tested_at: toMysqlDateTime(),
-          },
-          where: { company_id: companyId },
-        });
-        await syncToTenant(companyId, async () => {
-          await CommonModel.updateMasterDetails({
-            table: MODULE_TABLE,
-            data: {
-              mail_connection_status: result.success ? "connected" : "failed",
-              mail_last_tested_at: toMysqlDateTime(),
-            },
-            where: { company_id: companyId },
-          });
-        });
-      } catch (statusError) {
-        console.warn("Unable to update SMTP test status:", statusError.message);
-      }
-      clearCompanyMailerCache(companyId);
-    }
+//     if (companyId) {
+//       try {
+//         await CommonModel.updateMasterDetails({
+//           table: MODULE_TABLE,
+//           data: {
+//             mail_connection_status: result.success ? "connected" : "failed",
+//             mail_last_tested_at: toMysqlDateTime(),
+//           },
+//           where: { company_id: companyId },
+//         });
+//         await syncToTenant(companyId, async () => {
+//           await CommonModel.updateMasterDetails({
+//             table: MODULE_TABLE,
+//             data: {
+//               mail_connection_status: result.success ? "connected" : "failed",
+//               mail_last_tested_at: toMysqlDateTime(),
+//             },
+//             where: { company_id: companyId },
+//           });
+//         });
+//       } catch (statusError) {
+//         console.warn("Unable to update SMTP test status:", statusError.message);
+//       }
+//       clearCompanyMailerCache(companyId);
+//     }
 
-    if (!result.success) {
-      return failureResponse(res, {
-        code: 2008,
-        httpStatus: 400,
-        message: result.message,
-      });
-    }
+//     if (!result.success) {
+//       return failureResponse(res, {
+//         code: 2008,
+//         httpStatus: 400,
+//         message: result.message,
+//       });
+//     }
 
-    return successResponse(res, {
-      code: 1002,
-      httpStatus: 200,
-      message: result.message,
-      data: {
-        data: {
-          mail_connection_status: "connected",
-          mail_last_tested_at: toMysqlDateTime(),
-        },
-      },
-    });
-  } catch (error) {
-    return failureResponse(res, {
-      code: 2008,
-      httpStatus: 500,
-      message: error.message,
-    });
-  }
-};
-export const testDBConfig = async (req, res) => {
-  try {
-    const validation = validateBody(req.body, dbTestValidationRules);
-    if (!validation.isValid) {
-      return failureResponse(res, {
-        code: 2001,
-        httpStatus: 400,
-        message: validation.message,
-      });
-    }
+//     return successResponse(res, {
+//       code: 1002,
+//       httpStatus: 200,
+//       message: result.message,
+//       data: {
+//         data: {
+//           mail_connection_status: "connected",
+//           mail_last_tested_at: toMysqlDateTime(),
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     return failureResponse(res, {
+//       code: 2008,
+//       httpStatus: 500,
+//       message: error.message,
+//     });
+//   }
+// };
+// export const testDBConfig = async (req, res) => {
+//   try {
+//     const validation = validateBody(req.body, dbTestValidationRules);
+//     if (!validation.isValid) {
+//       return failureResponse(res, {
+//         code: 2001,
+//         httpStatus: 400,
+//         message: validation.message,
+//       });
+//     }
 
-    const data = validation.data;
-    // if (data.mail_provider === "custom" && (!data.smtp_host || !data.smtp_port || !data.smtp_username || !data.smtp_encryption)) {
-    //   return failureResponse(res, {
-    //     code: 2001,
-    //     httpStatus: 400,
-    //     message: "SMTP host, port, username, and encryption are required for Custom SMTP",
-    //   });
-    // }
+//     const data = validation.data;
+//     // if (data.mail_provider === "custom" && (!data.smtp_host || !data.smtp_port || !data.smtp_username || !data.smtp_encryption)) {
+//     //   return failureResponse(res, {
+//     //     code: 2001,
+//     //     httpStatus: 400,
+//     //     message: "SMTP host, port, username, and encryption are required for Custom SMTP",
+//     //   });
+//     // }
 
-    const result = await testCompanyDbConnection(data);
-    const companyId = req.user.company_id || null;
+//     const result = await testCompanyDbConnection(data);
+//     const companyId = req.user.company_id || null;
 
-    if (companyId) {
-      try {
-        await CommonModel.updateMasterDetails({
-          table: MODULE_TABLE,
-          data: {
-            db_status: result.success ? "connected" : "not_connected",
-            db_tested_at: toMysqlDateTime(),
-          },
-          where: { company_id: companyId },
-        });
-        await syncToTenant(companyId, async () => {
-          await CommonModel.updateMasterDetails({
-            table: MODULE_TABLE,
-            data: {
-              db_status: result.success ? "connected" : "not_connected",
-              db_tested_at: toMysqlDateTime(),
-            },
-            where: { company_id: companyId },
-          });
-        });
-      } catch (statusError) {
-        console.warn("Unable to update DB test status:", statusError.message);
-      }
-    }
+//     if (companyId) {
+//       try {
+//         await CommonModel.updateMasterDetails({
+//           table: MODULE_TABLE,
+//           data: {
+//             db_status: result.success ? "connected" : "not_connected",
+//             db_tested_at: toMysqlDateTime(),
+//           },
+//           where: { company_id: companyId },
+//         });
+//         await syncToTenant(companyId, async () => {
+//           await CommonModel.updateMasterDetails({
+//             table: MODULE_TABLE,
+//             data: {
+//               db_status: result.success ? "connected" : "not_connected",
+//               db_tested_at: toMysqlDateTime(),
+//             },
+//             where: { company_id: companyId },
+//           });
+//         });
+//       } catch (statusError) {
+//         console.warn("Unable to update DB test status:", statusError.message);
+//       }
+//     }
 
-    if (!result.success) {
-      return failureResponse(res, {
-        code: 2008,
-        httpStatus: 400,
-        message: result.message,
-      });
-    }
+//     if (!result.success) {
+//       return failureResponse(res, {
+//         code: 2008,
+//         httpStatus: 400,
+//         message: result.message,
+//       });
+//     }
 
-    return successResponse(res, {
-      code: 1002,
-      httpStatus: 200,
-      message: result.message,
-      data: {
-        data: {
-          db_status: "connected",
-          db_tested_at: toMysqlDateTime(),
-        },
-      },
-    });
-  } catch (error) {
-    console.log(error);
+//     return successResponse(res, {
+//       code: 1002,
+//       httpStatus: 200,
+//       message: result.message,
+//       data: {
+//         data: {
+//           db_status: "connected",
+//           db_tested_at: toMysqlDateTime(),
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     console.log(error);
 
-    return failureResponse(res, {
-      code: 2008,
-      httpStatus: 500,
-      message: error.message,
-    });
-  }
-};
+//     return failureResponse(res, {
+//       code: 2008,
+//       httpStatus: 500,
+//       message: error.message,
+//     });
+//   }
+// };
 
 export const uploadCompanyLogo = async (req, res) => {
   try {
@@ -313,29 +319,28 @@ export const uploadCompanyLogo = async (req, res) => {
     ensureCompanyLogoDir();
     fs.writeFileSync(absolutePath, req.file.buffer);
 
-    if (companyId) {
-      const result = await CommonModel.updateMasterDetails({
-        table: MODULE_TABLE,
-        data: {
-          email_logo: relativePath,
-          modified_by: req.user.adminID,
-          modified_date: toMysqlDateTime(),
-        },
-        where: { company_id: companyId },
-      });
-
-      await syncToTenant(companyId, async () => {
-        await CommonModel.updateMasterDetails({
-          table: MODULE_TABLE,
-          data: {
-            email_logo: relativePath,
-            modified_by: req.user.adminID,
-            modified_date: toMysqlDateTime(),
-          },
-          where: { company_id: companyId },
-        });
-      });
-
+  if (companyId) {
+  const result = await CommonModel.updateMasterDetails({
+  table: MODULE_TABLE,
+  data: {
+    company_logo: relativePath,
+    modified_by: req.user.adminID,
+    modified_date: toMysqlDateTime(),
+  },
+  where: { company_id: companyId },
+});
+console.log("relativePath:", relativePath);
+await syncToTenant(companyId, async () => {
+  await CommonModel.updateMasterDetails({
+    table: MODULE_TABLE,
+    data: {
+      company_logo: relativePath,
+      modified_by: req.user.adminID,
+      modified_date: toMysqlDateTime(),
+    },
+    where: { company_id: companyId },
+  });
+});
       if (!result.affectedRows) {
         return failureResponse(res, {
           code: 2004,
@@ -353,7 +358,7 @@ export const uploadCompanyLogo = async (req, res) => {
       message: "Company logo uploaded successfully",
       data: {
         data: {
-          email_logo: relativePath,
+         company_logo: relativePath,
         },
       },
     });
@@ -368,10 +373,11 @@ export const uploadCompanyLogo = async (req, res) => {
 export const removeCompanyLogo = async (req, res) => {
   try {
     const companyId = req.params.id;
-    const company = await CommonModel.getMasterDetails(MODULE_TABLE, "email_logo", {
-      company_id: companyId,
+    const company = await CommonModel.getMasterDetails(MODULE_TABLE,  "company_logo",
+  {
+    company_id: companyId,
     });
-
+  
     if (!company?.length) {
       return failureResponse(res, {
         code: 2004,
@@ -380,7 +386,7 @@ export const removeCompanyLogo = async (req, res) => {
       });
     }
 
-    const logoPath = company[0].email_logo;
+    const logoPath = company[0].company_logo;
 
     // Delete physical file if exists
     if (logoPath) {
@@ -395,7 +401,7 @@ export const removeCompanyLogo = async (req, res) => {
     await CommonModel.updateMasterDetails({
       table: MODULE_TABLE,
       data: {
-        email_logo: null,
+        company_logo: null,
         modified_by: req.user.adminID,
         modified_date: toMysqlDateTime(),
       },
@@ -406,7 +412,7 @@ export const removeCompanyLogo = async (req, res) => {
       await CommonModel.updateMasterDetails({
         table: MODULE_TABLE,
         data: {
-          email_logo: null,
+         company_logo: null,
           modified_by: req.user.adminID,
           modified_date: toMysqlDateTime(),
         },
@@ -444,6 +450,8 @@ export const getCompanyDetails = async (req, res) => {
     switch (method) {
       case "PUT": {
         const validation = validateBody(req.body, companyValidationRules);
+        console.log("REQ BODY =", req.body);
+        console.log("VALIDATED =", validation.data);
         if (!validation.isValid) {
           return failureResponse(res, {
             code: 2001,
@@ -462,7 +470,7 @@ export const getCompanyDetails = async (req, res) => {
           table: MODULE_TABLE,
           data,
         });
-        await syncToTenant(company_id, async () => {
+        await syncToTenant(result.insertId, async () => {
           await CommonModel.saveMasterDetails({
             table: MODULE_TABLE,
             data,
@@ -497,7 +505,9 @@ export const getCompanyDetails = async (req, res) => {
         }
         const dataforsync = validation.data;
         const data = validation.data;
-
+        console.log("REQ BODY:", req.body);
+        console.log("VALIDATION DATA:", validation.data);
+        console.log("dataforsync :", dataforsync);
         delete data.company_id;
         delete data.created_by;
         delete data.created_date;
@@ -583,6 +593,10 @@ export const getCompanyDetails = async (req, res) => {
         });
     }
   } catch (error) {
+    console.log("========== ERROR ==========");
+  console.log(error);
+  console.log(error.message);
+  console.log("===========================");
     return failureResponse(res, {
       code: 2008,
       httpStatus: 500,
@@ -634,51 +648,51 @@ export const changeStatus = async (req, res) => {
 };
 
 
-export const exportCompanyDb = async (req, res) => {
-  const companyId = Number(req.params.id || 0);
+// export const exportCompanyDb = async (req, res) => {
+//   const companyId = Number(req.params.id || 0);
 
-  if (!companyId) {
-    return res.status(400).json({ success: false, message: "Company ID required" });
-  }
+//   if (!companyId) {
+//     return res.status(400).json({ success: false, message: "Company ID required" });
+//   }
 
-  const fileName = `company-${companyId}-export-${Date.now()}.sql`;
-  const outputFile = path.join(os.tmpdir(), fileName);
+//   const fileName = `company-${companyId}-export-${Date.now()}.sql`;
+//   const outputFile = path.join(os.tmpdir(), fileName);
 
-  try {
-    fs.writeFileSync(outputFile, `SET FOREIGN_KEY_CHECKS=0;\n\n`);
+//   try {
+//     fs.writeFileSync(outputFile, `SET FOREIGN_KEY_CHECKS=0;\n\n`);
 
-    const dumps = [
-      ["company_master", `company_id = ${companyId}`],
-      ["admin", `(company_id = ${companyId} OR default_company = ${companyId})`],
-      ["categories", `(is_sys_category = 'yes' OR company_id = ${companyId})`],
-      ["products", `(company_id = ${companyId} OR company_id IS NULL)`],
-      ["customer", `company_id = ${companyId}`],
-      ["customer_contacts", `customer_id IN (SELECT customer_id FROM ${env.DB_PREFIX}customer WHERE company_id = ${companyId})`],
-      ["tickets", `company_id = ${companyId}`],
-      ["ticket_history", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
-      ["tickets_comments", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
-      ["ticket_work_logs", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
-      ["ticket_visits", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
-      ["reminder_logs", `company_id = ${companyId}`],
-    ];
+//     const dumps = [
+//       ["company_master", `company_id = ${companyId}`],
+//       ["admin", `(company_id = ${companyId} OR default_company = ${companyId})`],
+//       ["categories", `(is_sys_category = 'yes' OR company_id = ${companyId})`],
+//       ["products", `(company_id = ${companyId} OR company_id IS NULL)`],
+//       ["customer", `company_id = ${companyId}`],
+//       ["customer_contacts", `customer_id IN (SELECT customer_id FROM ${env.DB_PREFIX}customer WHERE company_id = ${companyId})`],
+//       ["tickets", `company_id = ${companyId}`],
+//       ["ticket_history", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
+//       ["tickets_comments", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
+//       ["ticket_work_logs", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
+//       ["ticket_visits", `ticket_id IN (SELECT ticket_id FROM ${env.DB_PREFIX}tickets WHERE company_id = ${companyId})`],
+//       ["reminder_logs", `company_id = ${companyId}`],
+//     ];
 
-    for (const [table, where] of dumps) {
-      fs.appendFileSync(outputFile, `\n-- ${env.dbPrefix}${table}\n`);
-      await dumpTable({ table, where, outputFile });
-    }
+//     for (const [table, where] of dumps) {
+//       fs.appendFileSync(outputFile, `\n-- ${env.dbPrefix}${table}\n`);
+//       await dumpTable({ table, where, outputFile });
+//     }
 
-    fs.appendFileSync(outputFile, `\nSET FOREIGN_KEY_CHECKS=1;\n`);
+//     fs.appendFileSync(outputFile, `\nSET FOREIGN_KEY_CHECKS=1;\n`);
 
-    res.download(outputFile, fileName, () => {
-      fs.unlink(outputFile, () => { });
-    });
-  } catch (error) {
-    console.log('error : ',error);
+//     res.download(outputFile, fileName, () => {
+//       fs.unlink(outputFile, () => { });
+//     });
+//   } catch (error) {
+//     console.log('error : ',error);
     
-    fs.unlink(outputFile, () => { });
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+//     fs.unlink(outputFile, () => { });
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };

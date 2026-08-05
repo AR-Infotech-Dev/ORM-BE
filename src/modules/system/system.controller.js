@@ -76,6 +76,7 @@ export const getFreeTextSearch = async (req, res) => {
     // ===============================
     // INPUT SEARCH
     // ===============================
+
     if (type === "input") {
       if (!text) {
         return failureResponse(res, {
@@ -104,6 +105,9 @@ export const getFreeTextSearch = async (req, res) => {
     }
     if (tableName === "categories") {
       where.push(`t.is_parent = 'yes' `);
+    }
+    if (tableName === "menu_master") {
+      where.push(`t.is_parent = 'y' `);
     }
     const result = await CommonModel.GetMasterListDetails({ select: list, table: tableName, where, values });
     if (result.length) {

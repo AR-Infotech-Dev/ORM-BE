@@ -9,13 +9,21 @@ import { env } from "#config/env.js";
 const MODULE_TABLE = "products";
 
 const default_columns = {
-  // product_type: {
-  //   table: "categories",
-  //   alias: "pt",
-  //   column: "categoryName",
-  //   key2: "category_id",
-  //   select: "",
-  // },
+  product_type: {
+    table: "categories",
+    alias: "pt",
+    column: "categoryName",
+    key2: "category_id",
+    select: "",
+  },
+  
+  unit: {
+    table: "categories",
+    alias: "pu",
+    column: "categoryName",
+    key2: "category_id",
+    select: "",
+  },
 };
 
 const custom_columns = {
@@ -46,32 +54,6 @@ const productValidationRules = {
   product_id: { label: "Product ID", type: "number" },
   product_name: { label: "Product Name", required : true },
   product_type: { label: "Product Type", required: true },
-    sku: {
-    label: "SKU",
-  },
-    category_id: {
-    label: "Category ID",
-    type: "number",
-  },
-
-  unit: {
-    label: "Unit",
-  },
-
-  mrp: {
-    label: "MRP",
-    type: "number",
-  },
-
-  sale_price: {
-    label: "Sale Price",
-    type: "number",
-  },
-
-  tax_rate: {
-    label: "Tax Rate",
-    type: "number",
-  },
   product_description: { label: "Description" },
   company_id: { label: "Company", type: "number" },
   created_by: { label: "Created By", type: "number" },
@@ -91,7 +73,7 @@ export const list = async (req, res) => {
 
     // const limit = 10;
     const limit = env.perPage;
-    
+
     const currentPage = Number(page) || 1;
     const start = (currentPage - 1) * limit;
 
@@ -103,10 +85,8 @@ export const list = async (req, res) => {
         order,
         searchColumns: [
           "product_name",
+          "sku",
           "product_description",
-          "product_id",
-
-
         ],
       },
       default_columns,
@@ -116,9 +96,11 @@ export const list = async (req, res) => {
     const { select, where, values, join, other } = filterData;
     other.freeTextSearch = searchText;
     other.searchColumns = [
+      "t.product_id",
       "t.product_name",
+      "t.sku",
       "t.product_description",
-       "product_id",
+      "pt.categoryName",
     ];
 
     if (!isSuperAdmin(req.user) && req.user.company_id) {
@@ -193,6 +175,23 @@ export const getProductDetails = async (req, res) => {
         data.created_by = req.user.adminID;
         data.company_id = req.user.company_id;
         data.created_date = toMysqlDateTime();
+
+        const existingSku = await CommonModel.getMasterDetails(
+          MODULE_TABLE,
+          "*",
+          {
+            sku: data.sku,
+            company_id: req.user.company_id,
+          }
+        );
+
+        if (existingSku.length > 0) {
+          return failureResponse(res, {
+            code: 2001,
+            httpStatus: 400,
+            message: "SKU already exists.",
+          });
+        }
 
         const result = await CommonModel.saveMasterDetails({
           table: MODULE_TABLE,
@@ -347,4 +346,3 @@ export const changeStatus = async (req, res) => {
     });
   }
 };
-
