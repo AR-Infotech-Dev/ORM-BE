@@ -173,21 +173,21 @@ export const getFreeTextAssignee = async (req, res) => {
 
     let select = sel;
 
-    if (tableName === "admin") {
-      const companyId = Number(req.user.company_id || 0);
-      const ticketCompanyCondition = companyId ? ` AND pt.company_id = ${companyId}` : "";
+    // if (tableName === "admin") {
+    //   const companyId = Number(req.user.company_id || 0);
+    //   const ticketCompanyCondition = companyId ? ` AND pt.company_id = ${companyId}` : "";
 
-      join.push({
-        type: "LEFT JOIN",
-        table: "tickets",
-        alias: "pt",
-        key1: "adminID",
-        key2: "assignee",
-      });
+    //   join.push({
+    //     type: "LEFT JOIN",
+    //     table: "tickets",
+    //     alias: "pt",
+    //     key1: "adminID",
+    //     key2: "assignee",
+    //   });
 
-      select = `${select}, COALESCE(COUNT(CASE WHEN pt.status = 'active' AND pt.ticket_status <> '208'${ticketCompanyCondition} THEN pt.ticket_id END), 0) AS pending_tickets_count`;
-      other.groupBy = "t.adminID";
-    }
+    //   select = `${select}, COALESCE(COUNT(CASE WHEN pt.status = 'active' AND pt.ticket_status <> '208'${ticketCompanyCondition} THEN pt.ticket_id END), 0) AS pending_tickets_count`;
+    //   other.groupBy = "t.adminID";
+    // }
     const result = await CommonModel.GetMasterListDetails({ select, table: tableName, where, values, join, other });
     if (result.length) {
       return successResponse(res, {
