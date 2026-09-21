@@ -1,5 +1,16 @@
 import { query, DB_PREFIX } from "#config/database.js";
 
+const printSql = (sql, params) => {
+    let fullSql = sql;
+    params.forEach(param => {
+        const formattedParam = typeof param === 'string' ? `'${param.replace(/'/g, "''")}'` : param;
+        fullSql = fullSql.replace('?', formattedParam);
+    });
+    // console.log('{');
+    // console.log('Sql :', fullSql);
+    // console.log('}');
+}
+
 // =====================================
 // LAST INSERT ID
 // =====================================
@@ -111,6 +122,9 @@ export const getCountsByParameter = async ({ table = "", where = [], values = []
         sql += ` WHERE ${whereParts.join(" AND ")}`;
     }
 
+    // console.log("COUNT SQL:", sql);
+    // console.log("COUNT PARAMS:", params);
+
     const rows = await query(sql, params);
     return rows[0]?.total || 0;
 };
@@ -160,8 +174,8 @@ export const GetMasterListDetails = async ({ select = "*", table = "", where = [
         const safeStart = Number(start) || 0;
         sql += ` LIMIT ${safeLimit} OFFSET ${safeStart}`;
     }
-    console.log(sql, params);
-    
+    // console.log(sql, params);
+    // printSql(sql, params);
     const rows = await query(sql, params);
     return rows;
 };
@@ -188,16 +202,11 @@ export const saveMasterDetails = async ({ table = "", data = {} } = {}) => {
     const normalizedData = normalizeWriteData(data);
     const columns = Object.keys(normalizedData);
     const values = Object.values(normalizedData);
-
     const placeholders = columns.map(() => "?").join(",");
-
-    const sql = `
-    INSERT INTO ${DB_PREFIX}${table}
-    (${columns.join(",")})
-    VALUES (${placeholders})
-  `;
-
+    const sql = ` INSERT INTO ${DB_PREFIX}${table} (${columns.join(",")}) VALUES (${placeholders}) `;
     const result = await query(sql, values);
+    // console.log('result : ', result);
+
     return result;
 };
 
@@ -283,5 +292,5 @@ export const updateMenuPositions = async ({ table = "", positions = [] }) => {
 }
 
 export const getCompanyDbConfig = async (companyId) => {
-    return await getSpecificDetails("company_master", "company_id, own_db_enabled, db_type, db_host, db_port, db_name, db_username, db_password, db_ssl_enabled, db_status, db_tested_at", {company_id : companyId});
+    return await getSpecificDetails("company_master", "company_id, own_db_enabled, db_type, db_host, db_port, db_name, db_username, db_password, db_ssl_enabled, db_status, db_tested_at", { company_id: companyId });
 }
