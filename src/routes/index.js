@@ -18,6 +18,8 @@ import { verifyToken } from "#middlewares/auth.middleware.js"
 import visitRoutes from "#modules/visit/visit.routes.js";
 import myTeamsRoutes from "#modules/myTeams/myTeams.routes.js";
 
+import ordersRoutes from "#modules/orders/orders.routes.js";
+
 const router = express.Router();
 
 router.use('/', loginRoutes);
@@ -35,8 +37,8 @@ router.use('/userroles', verifyToken, userroleRoutes);
 router.use("/notifications", verifyToken, notificationRoutes);
 router.use("/dashboard", verifyToken, dashboardRoutes);
 router.use("/visits", verifyToken, visitRoutes);
-// router.use('/myTeams', verifyToken, myTeamsRoutes);
 router.use('/myTeams', verifyToken, myTeamsRoutes);
 
+router.use("/orders", verifyToken, ordersRoutes);
 
 export default router;

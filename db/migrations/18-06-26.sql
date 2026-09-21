@@ -13,4 +13,3 @@ ADD COLUMN ticket_prefix_padding VARCHAR(20) DEFAULT null,
 ADD COLUMN ticket_include_year ENUM('y','n') DEFAULT 'y',
 ADD COLUMN ticket_no_reset ENUM('daily', 'monthly', 'yearly') NULL DEFAULT 'yearly';
 
-
